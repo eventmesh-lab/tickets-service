@@ -1,9 +1,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# copy csproj and restore as distinct layers
 COPY . ./
-WORKDIR /src/src/tickets_service.Api
+WORKDIR /src/src/tickets-service.Api
 RUN dotnet restore
 RUN dotnet publish -c Release -o /app/publish
 

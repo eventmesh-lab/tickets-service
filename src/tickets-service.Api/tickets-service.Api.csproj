@@ -8,9 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\tickets_service.Application\tickets_service.Application.csproj" />
-    <ProjectReference Include="..\tickets_service.Domain\tickets_service.Domain.csproj" />
-    <ProjectReference Include="..\tickets_service.Infrastructure\tickets_service.Infrastructure.csproj" />
+    <ProjectReference Include="..\tickets-service.Application\tickets-service.Application.csproj" />
+    <ProjectReference Include="..\tickets-service.Domain\tickets-service.Domain.csproj" />
+    <ProjectReference Include="..\tickets-service.Infrastructure\tickets-service.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

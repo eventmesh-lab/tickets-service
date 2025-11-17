@@ -19,6 +19,13 @@ Microservicio responsable de la **generación, gestión y validación de tickets
 - Prevenir duplicación y fraude
 - Registrar auditoría de validaciones
 
+### 2.1 Componentes implementados (enero 2025)
+
+- `TicketApplicationService`: orquesta los casos de uso sin CQRS, consumido por la API Minimal.
+- `TicketRepository` + `TicketsDbContext`: adaptación EF Core (Npgsql) del puerto `ITicketRepository`.
+- `NoopEventAvailabilityGateway`: stub temporal para `events-service`, reemplazable por cliente HTTP/RPC.
+- Minimal API (`Program.cs`) con endpoints REST y pruebas end-to-end (`tickets-service.Api.Tests`).
+
 ---
 
 ## 3. Modelo de Dominio
@@ -425,6 +432,24 @@ Valida un ticket mediante código QR (check-in).
 ```
 
 **Response:** `200 OK` (Ticket válido) o `400 Bad Request` (ya usado/inválido)
+
+---
+
+### POST /api/tickets/cancelar
+
+Cancela un ticket pendiente/confirmado y libera el asiento.
+
+**Request:**
+
+```json
+{
+  "ticketId": "uuid",
+  "razon": "Solicitud del asistente",
+  "fechaCancelacionUtc": "2024-01-01T18:00:00Z"
+}
+```
+
+**Response:** `204 No Content`
 
 ---
 

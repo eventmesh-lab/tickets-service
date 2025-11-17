@@ -1,10 +1,28 @@
 version: '3.8'
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: tickets-db
+    environment:
+      POSTGRES_USER: tickets
+      POSTGRES_PASSWORD: tickets
+      POSTGRES_DB: tickets_service
+    ports:
+      - "5432:5432"
+    volumes:
+      - tickets_pg_data:/var/lib/postgresql/data
+
   api:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "5000:80"
+    depends_on:
+      - db
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__TicketsDb: Host=db;Port=5432;Database=tickets_service;Username=tickets;Password=tickets
+
+volumes:
+  tickets_pg_data:

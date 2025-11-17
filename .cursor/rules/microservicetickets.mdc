@@ -1,0 +1,249 @@
+---
+alwaysApply: true
+---
+# Reglas del Proyecto: Tickets Service
+
+Este archivo contiene las reglas y convenciones del proyecto `tickets-service` basadas en la documentación técnica del proyecto.
+
+## 1. Arquitectura y Principios
+
+### Arquitectura Base
+
+- **Arquitectura Hexagonal (Ports & Adapters)**: Separación clara entre el núcleo de la aplicación y las tecnologías externas.
+- **Domain-Driven Design (DDD)**: El dominio es el núcleo de la aplicación y contiene toda la lógica de negocio.
+- **Bounded Context**: Reservas y Ticketing
+
+### Principios de Diseño
+
+- **SOLID**: Aplicar todos los principios SOLID en el diseño de clases y módulos.
+- **DRY (Don't Repeat Yourself)**: Evitar duplicación de código.
+- **YAGNI (You Aren't Gonna Need It)**: No implementar funcionalidades que no se necesitan actualmente.
+- **Claridad > Cleverness**: Priorizar código claro y legible sobre soluciones "inteligentes" pero complejas.
+- **Simplicidad > Perfección**: Una solución simple que funciona es mejor que una perfecta que no existe.
+
+## 2. Estructura de Capas
+
+El proyecto está organizado en cuatro capas principales, cada una con responsabilidades específicas:
+
+### 2.1 Domain Layer (`tickets-service.Domain`)
+
+- **Responsabilidad**: Contiene la lógica y reglas de negocio más importantes.
+- **Restricción**: NO debe depender de ninguna tecnología externa.
+- **Componentes**:
+  - **Agregado**: `Ticket` es el aggregate root, responsable de mantener sus invariantes.
+  - **Entidades**: (p. ej.) `ValidacionIntento` (auditoría), relación con `Asiento`/`Seccion` si aplica.
+  - **Value Objects**: `CodigoQR`, `EstadoTicket`, `TipoTicket`.
+  - **Eventos de Dominio**: `TicketsGenerados`, `TicketsConfirmados`, `TicketValidado`, `TicketCancelado`.
+  - **Interfaces de Repositorio (Puertos)**: Contratos de persistencia (p. ej. `ITicketRepository`).
+- **Reglas**:
+  - El dominio mantiene las invariantes del agregado `Ticket` (unicidad de QR, validación única, no sobreventa, etc.).
+  - Los agregados validan reglas de negocio y generan eventos de dominio.
+  - No se permiten referencias a librerías de infraestructura.
+
+### 2.2 Application Layer (`tickets-service.Application`)
+
+- **Responsabilidad**: Orquesta los casos de uso, NO contiene lógica de negocio.
+- **Patrón**: CQRS con MediatR para separar comandos (escrituras) de consultas (lecturas).
+- **Componentes**:
+  - **Comandos**: `GenerarTicketsCommand`, `ConfirmarTicketsCommand`, `ValidarTicketCommand`, `CancelarTicketCommand`.
+  - **Handlers**: Orquestan: recuperan agregado, invocan métodos de negocio, persisten cambios.
+  - **Validaciones**: `FluentValidation` para validar datos de entrada antes de llegar al dominio.
+- **Reglas**:
+  - Handlers NO contienen lógica de negocio, solo orquestación.
+  - Validación de entrada con FluentValidation.
+  - Los handlers invocan métodos del agregado, no manipulan directamente su estado.
+
+### 2.3 Infrastructure Layer (`tickets-service.Infrastructure`)
+
+- **Responsabilidad**: Implementa adaptadores para tecnologías externas.
+- **Componentes**:
+  - **Persistencia**: Repositorios con Entity Framework Core y PostgreSQL.
+  - **Mensajería**: Publica eventos de dominio en RabbitMQ.
+  - **Servicios Externos**: Clientes para interactuar con `events-service` (capacidad/estado) y `users-service` (identidad).
+- **Reglas**:
+  - Implementa interfaces definidas en el dominio.
+  - Publica eventos en el exchange `tickets.domain.events`.
+  - Usa EF Core para mapeo ORM.
+
+### 2.4 API Layer (`tickets-service.Api`)
+
+- **Responsabilidad**: Punto de entrada de la aplicación, expone funcionalidad vía API REST (Minimal APIs).
+- **Tecnología**: .NET 8 Minimal APIs.
+- **Reglas**:
+  - Recibe peticiones HTTP y las traduce a comandos/consultas de MediatR.
+  - Gestiona configuración, registro de dependencias (IoC) y pipeline de middleware.
+  - Expone Swagger en desarrollo.
+  - Endpoints siguen el patrón RESTful.
+
+## 3. Flujo de Ejecución de Comandos
+
+Flujo estándar para `GenerarTickets`:
+
+1. **API Layer**: Endpoint `POST /api/tickets/generar` recibe petición HTTP.
+2. **Mapeo**: El cuerpo se mapea a `GenerarTicketsCommand`.
+3. **Application (MediatR)**: El comando se envía a su handler.
+4. **Validación**: FluentValidation aplica reglas de datos (IDs, precios, sección/asiento válidos, etc.).
+5. **Domain Layer**:
+   - El handler invoca métodos del agregado `Ticket`.
+   - El agregado valida invariantes: capacidad disponible (consultada a `events-service`), unicidad de QR y asiento, estado de evento publicado.
+   - Emite evento de dominio `TicketsGenerados`.
+6. **Infrastructure Layer**:
+   - `ITicketRepository` persiste cambios en PostgreSQL.
+   - Publica `TicketsGenerados` en RabbitMQ (exchange `tickets.domain.events`).
+7. **API Layer**: Devuelve `201 Created` o `409 Conflict` si no hay disponibilidad.
+
+## 4. Tecnologías y Herramientas
+
+### Stack Tecnológico
+
+- **.NET 8.0**: Framework y SDK requerido.
+- **PostgreSQL**: Base de datos relacional.
+- **RabbitMQ**: Message broker para eventos de dominio.
+- **Entity Framework Core**: ORM para persistencia.
+- **MediatR**: Implementación de CQRS.
+- **FluentValidation**: Validación de comandos.
+- **Serilog**: Logging estructurado.
+- **OpenTelemetry**: Traces y métricas.
+- **Docker & Docker Compose**: Orquestación de dependencias.
+
+### Configuración
+
+- Variables de entorno:
+  - `ConnectionStrings__TicketsDb`: Cadena de conexión PostgreSQL.
+  - `MessageBroker__Host`: Host de RabbitMQ.
+  - `MessageBroker__Exchange`: Exchange de dominio (`tickets.domain.events`).
+  - `OpenTelemetry__Endpoint`: Colector OTLP para traces y métricas.
+  - (Opc.) `EventsService__BaseUrl`: Base URL para consultas de capacidad/estado.
+  - (Opc.) `UsersService__BaseUrl`: Base URL para validación/enriquecimiento de asistentes.
+
+## 5. Estructura de Carpetas
+
+``` bash
+Services/tickets-service/
+├── src/
+│   ├── tickets-service.Api/           # Capa de API (Minimal APIs)
+│   ├── tickets-service.Application/   # Capa de aplicación (CQRS, MediatR)
+│   ├── tickets-service.Domain/        # Capa de dominio (Agregado Ticket, VOs, Eventos)
+│   └── tickets-service.Infrastructure/# Capa de infraestructura (EF Core, RabbitMQ)
+├── tests/
+│   ├── tickets-service.Application.Tests/        # Pruebas de aplicación
+│   └── tickets-service.Domain.Tests/             # Pruebas de dominio
+├── docs/                             # Documentación técnica del servicio
+├── docker-compose.yml                # Orquestación de dependencias
+└── Dockerfile                        # Imagen Docker del servicio
+```
+
+## 6. Convenciones de Código
+
+### Nomenclatura
+
+- **Agregado**: `Ticket` (singular).
+- **Comandos**: Sufijo `Command` (ej: `GenerarTicketsCommand`).
+- **Handlers**: Sufijo `Handler` (ej: `GenerarTicketsCommandHandler`).
+- **Repositorios**: Prefijo `I` para interfaces (ej: `ITicketRepository`).
+- **Eventos de Dominio**: Nombres en pasado (ej: `TicketsGenerados`, `TicketsConfirmados`).
+- **Value Objects**: Nombres descriptivos (ej: `CodigoQR`, `EstadoTicket`).
+
+### Documentación
+
+- Incluir docstring o comentario inline explicando el propósito de clases y métodos complejos.
+- Documentar invariantes del dominio en pruebas unitarias.
+- Mantener documentación de endpoints y eventos (OpenAPI/AsyncAPI) actualizada y versionada.
+
+### Validación
+
+- Validar datos de entrada con FluentValidation en la capa de aplicación.
+- Validar invariantes de negocio en el dominio (capacidad, estado, unicidad).
+- Manejar errores con respuestas claras (400, 404, 409, 422).
+
+## 7. Pruebas (TDD)
+
+### Enfoque
+
+- Si se trabaja con TDD y hay tests creados, NO modificar los tests existentes.
+- Los tests deben validar el comportamiento esperado, no la implementación.
+
+### Tipos de Pruebas
+
+- **Pruebas Unitarias (Domain)**: Validar invariantes y lógica de negocio del agregado `Ticket`.
+- **Pruebas Unitarias (Application)**: Validar orquestación de casos de uso.
+
+### Ejecución
+
+```bash
+# Pruebas unitarias de dominio
+dotnet test tests/tickets-service.Domain.Tests/
+
+# Pruebas unitarias de aplicación
+dotnet test tests/tickets-service.Application.Tests/
+```
+
+## 8. Lenguaje Ubicuo
+
+### Términos del Dominio
+
+- **Ticket**: Agregado raíz que representa la entrada con derecho de acceso.
+- **CodigoQR**: VO con valor e imagen; firma digital/HMAC para antifraude.
+- **EstadoTicket**: VO/Enum con estados (`Pendiente`, `Confirmado`, `Cancelado`, `Usado`).
+- **TipoTicket**: VO/Enum con tipos (General, VIP, etc.).
+- **Validación (Check-in)**: Proceso que marca un ticket como `Usado`.
+- **Disponibilidad**: Capacidad del evento menos tickets confirmados y pendientes.
+- **Seccion/Asiento**: Estructura opcional del evento para asientos numerados.
+
+### Bounded Context
+
+- **Contexto**: Reservas y Ticketing
+- **Responsabilidad**: Emisión, confirmación, validación y cancelación de tickets; control de disponibilidad por capacidad.
+
+## 9. Buenas Prácticas
+
+### Desarrollo
+
+- Mantener el dominio libre de dependencias de infraestructura.
+- Documentar invariantes (capacidad, unicidad) en pruebas unitarias.
+- Exponer contratos (API, eventos) con OpenAPI/AsyncAPI y versionar cambios.
+- Emitir logs estructurados con Serilog y propagar contexto de trazas (OpenTelemetry).
+- Automatizar pipeline de CI/CD con restauración, build, pruebas y análisis de calidad.
+
+### Seguridad
+
+- Validar entradas y tokens (si aplica) para endpoints de validación de tickets.
+- Manejar errores de forma segura sin exponer información sensible.
+- Usar principios de seguridad por defecto.
+
+### Rendimiento
+
+- Medir y optimizar validación de QR para colas de acceso.
+- Usar índices adecuados (por `codigo_qr`, `evento_id`, `asistente_id`).
+- Considerar caché de disponibilidad de corto plazo, invalidada por eventos.
+
+## 10. Preguntas Obligatorias Antes de Escribir Código
+
+Antes de escribir cualquier código, responder:
+
+1. **Contexto completo**:
+   - ¿Qué problema específico estoy resolviendo?
+   - ¿Cuáles son los requisitos funcionales y no funcionales?
+   - ¿Qué tecnologías/frameworks estoy usando?
+   - ¿Hay restricciones de rendimiento, seguridad o compatibilidad?
+
+2. **Integración**:
+   - ¿Este código se integra con `events-service` o `users-service`? ¿Cómo?
+   - ¿Qué casos edge debo considerar (sobreventa, duplicado de QR, reloj fuera de sync)?
+   - ¿Cómo voy a testear esto?
+   - ¿Hay patrones establecidos en el proyecto que deba seguir?
+
+3. **Arquitectura**:
+   - ¿En qué capa debe ir este código?
+   - ¿Sigue los principios de arquitectura hexagonal?
+   - ¿Respeto las dependencias entre capas?
+
+## 11. Documentación de Referencia
+
+- **Documentación Central**: [Ficha del Servicio](https://eventmesh-lab.github.io/org-docs/services/tickets-service/)
+- **Guía Técnica**: [Guía Técnica Global](https://eventmesh-lab.github.io/org-docs/guia-tecnica/)
+- **Documentación Local**: Ver carpeta `docs/` para documentación específica del servicio.
+
+---
+
+**Nota**: Estas reglas están basadas en la documentación técnica del proyecto y deben seguirse estrictamente para mantener la consistencia y calidad del código.

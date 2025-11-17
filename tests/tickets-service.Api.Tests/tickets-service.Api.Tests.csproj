@@ -6,17 +6,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.3" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.3" />
-    <PackageReference Include="Moq" Version="4.18.4" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\tickets-service.Application\tickets-service.Application.csproj" />
-    <ProjectReference Include="..\..\src\tickets-service.Domain\tickets-service.Domain.csproj" />
+    <ProjectReference Include="..\..\src\tickets-service.Api\tickets-service.Api.csproj" />
   </ItemGroup>
 
 </Project>
+
