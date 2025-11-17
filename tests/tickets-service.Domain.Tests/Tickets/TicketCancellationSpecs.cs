@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using tickets_service.Domain.Tickets;
 using tickets_service.Domain.Tickets.Events;
+using tickets_service.Domain.Tickets.ValueObjects;
 using Xunit;
 
 namespace tickets_service.Domain.Tests.Tickets;

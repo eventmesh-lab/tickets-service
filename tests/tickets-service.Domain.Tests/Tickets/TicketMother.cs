@@ -5,6 +5,7 @@ using tickets_service.Domain.Tickets.ValueObjects;
 
 namespace tickets_service.Domain.Tests.Tickets;
 
+#nullable enable
 /// <summary>
 /// Utilidad para crear instancias del agregado Ticket en distintos estados.
 /// </summary>
@@ -66,4 +67,5 @@ internal static class TicketMother
         public string? SeccionNombre { get; set; }
         public DateTime FechaActual { get; set; }
     }
+#nullable restore
 }
