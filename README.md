@@ -1,74 +1,63 @@
-# Plantilla tickets_service Hexagonal (dotnet)
+# Tickets Service
 
-Plantilla para generar un microservicio con arquitectura Hexagonal (Ports & Adapters) en .NET.
+Microservicio responsable de la generación, gestión y validación de tickets (entradas) con códigos QR únicos. Implementa la lógica del agregado `Ticket` y su ciclo de vida según el lenguaje ubicuo del proyecto.
 
-Estructura creada:
+- Bounded Context: Reservas y Ticketing
+- Repositorio raíz: `eventmesh-lab/tickets-service`
 
-- src/
-  - tickets_service.Domain/
-  - tickets_service.Application/
-  - tickets_service.Infrastructure/
-  - tickets_service.Api/
-- tests/
-  - tickets_service.Domain.Tests/
-  - tickets_service.Application.Tests/
-  - tickets_service.Infrastructure.IntegrationTests/
-- .template.config/template.json
+Para una descripción funcional y técnica más detallada, revisa la documentación en `docs/` (arquitectura, comandos/eventos, API y persistencia).
 
-Cómo usar este repositorio como template
+## Estructura
 
-Hay dos formas comunes de usar este repo como plantilla:
+- `src/`
+  - `tickets-service.Domain/`
+  - `tickets-service.Application/`
+  - `tickets-service.Infrastructure/`
+  - `tickets-service.Api/`
+- `tests/`
+  - `tickets-service.Domain.Tests/`
+  - `tickets-service.Application.Tests/`
 
-1) Usar el repositorio como "GitHub Template" (recomendado si publicas en GitHub):
-   - En GitHub configura el repositorio como "Template repository" (Settings → Template repository) o usa el botón "Use this template" para crear un nuevo repo basado en esta plantilla.
-   - Clona el repo resultante localmente y sigue la sección "Instalación local" abajo para instalar el template en tu máquina.
-
-2) Instalación local directa (desarrollo / pruebas):
-   - Clona este repositorio y luego instala la plantilla desde la carpeta del repo:
+## Desarrollo rápido
 
 ```bash
-git clone https://github.com/<owner>/tickets_service-hexagonal-template-.git
-cd tickets_service-hexagonal-template-
-# Instalar la plantilla localmente (SDK moderno):
-dotnet new install .
-# Si ya la tienes instalada y quieres forzar la actualización:
-dotnet new install . --force
-```
-
-Ver las plantillas instaladas:
-
-```bash
-dotnet new list
-```
-
-Generar un nuevo microservicio desde la plantilla
-
-```bash
-# Crea el microservicio (reemplaza "Orders" por el nombre que desees):
-dotnet new tickets_service-hex -n Orders -o ./Orders --framework net8.0
-
-cd Orders
+# Restaurar dependencias
 dotnet restore
-dotnet build
+
+# Compilar
+dotnet build --no-restore
+
+# Ejecutar tests
+dotnet test --no-build
+
+# (Opcional) Ejecutar con Docker
+docker compose up -d --build
 ```
 
-Notas importantes
-- El template usa `tickets_service` como `sourceName`; al generar el proyecto ese token se sustituye por el nombre que pases con `-n`.
-- Los .csproj contienen el token `net8.0` que se sustituye por el valor del parámetro `--framework` (por defecto `net8.0`).
-- Si la plantilla está instalada globalmente y haces cambios locales, reinstálala con `--force`.
+## Endpoints principales
 
-Desinstalar la plantilla (opcional)
+- `POST /api/tickets/generar`: Genera tickets para una reserva
+- `POST /api/tickets/confirmar`: Confirma tickets tras pago exitoso
+- `POST /api/tickets/validar`: Valida ticket por código QR (check-in)
+- `GET /api/tickets/{id}`: Detalle de ticket
+- `GET /api/tickets/asistente/{asistenteId}`: Tickets por asistente
+- `GET /api/tickets/evento/{eventoId}/estadisticas`: Estadísticas por evento
 
-```bash
-# Si la instalaste desde una carpeta local, puedes desinstalar usando la misma ruta o el identificador usado al instalar.
-dotnet new uninstall /path/to/tickets_service-hexagonal-template-
-# (o) desinstalar por paquete si lo subiste a un feed: dotnet new uninstall <package-or-feed>
-```
+Más detalles y ejemplos en `docs/ARCHITECTURE.md`.
 
-Problemas comunes
-- Si ves errores al compilar la API relacionados con Swagger, asegúrate de restaurar paquetes; la plantilla incluye `Swashbuckle.AspNetCore` por defecto.
-- Si el comando `dotnet new tickets_service-hex` no aparece tras instalar, ejecuta `dotnet new install . --force` y verifica con `dotnet new list`.
+## Tecnologías
 
-¿Qué sigue?
-- Puedes solicitar que añada un `.sln` a la plantilla, workflows de CI (GitHub Actions) que verifiquen la generación y build, o parámetros adicionales para incluir EF Core / mensajería a la carta.
+- .NET 8, Minimal APIs, MediatR (CQRS)
+- PostgreSQL (EF Core 8)
+- RabbitMQ (eventos de dominio)
+- QRCoder/ZXing.Net (generación de QR)
+- Serilog, OpenTelemetry
 
+## Documentación
+
+- Arquitectura y dominio: `docs/ARCHITECTURE.md`
+- Guía de la plantilla original: `docs/TEMPLATE.md` (contenido movido desde el README anterior)
+
+## Notas
+
+- Este README fue adaptado al servicio. La guía de uso de la plantilla se conservó en `docs/TEMPLATE.md`.
