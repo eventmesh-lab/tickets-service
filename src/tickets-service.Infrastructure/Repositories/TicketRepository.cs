@@ -1,9 +1,11 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using tickets_service.Domain.Tickets;
 using tickets_service.Domain.Tickets.Repositories;
+using tickets_service.Domain.Tickets.ValueObjects;
 using tickets_service.Infrastructure.Persistence;
 using tickets_service.Infrastructure.Persistence.Entities;
 
@@ -51,6 +53,21 @@ public sealed class TicketRepository : ITicketRepository
 
         entity.Apply(ticket);
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<int> GetActiveTicketCountAsync(Guid eventoId, string? seccionNombre, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Tickets.AsNoTracking()
+            .Where(t => t.EventoId == eventoId &&
+                        (t.Estado == (int)EstadoTicket.Pendiente ||
+                         t.Estado == (int)EstadoTicket.Confirmado));
+
+        if (!string.IsNullOrWhiteSpace(seccionNombre))
+        {
+            query = query.Where(t => t.SeccionNombre == seccionNombre);
+        }
+
+        return await query.CountAsync(cancellationToken);
     }
 }
 

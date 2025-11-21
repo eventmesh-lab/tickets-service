@@ -23,7 +23,14 @@ var connectionString = builder.Configuration.GetConnectionString("TicketsDb")
 
 builder.Services.AddDbContext<TicketsDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
-builder.Services.AddScoped<IEventAvailabilityGateway, NoopEventAvailabilityGateway>();
+
+var eventsServiceUrl = builder.Configuration["EventsServiceUrl"] 
+    ?? throw new InvalidOperationException("EventsServiceUrl no está configurado.");
+
+builder.Services.AddHttpClient<IEventAvailabilityGateway, HttpEventAvailabilityGateway>(client =>
+{
+    client.BaseAddress = new Uri(eventsServiceUrl);
+});
 
 // Registrar capa de aplicación (MediatR + Validators)
 builder.Services.AddApplication();
@@ -33,9 +40,19 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.UseSwagger();
-    app.UseSwaggerUI();
 }
+
+// Swagger siempre habilitado para facilitar el desarrollo y testing
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Tickets Service API v1");
+    c.RoutePrefix = "swagger";
+});
+
+// Redirigir la raíz a Swagger UI
+app.MapGet("/", () => Results.Redirect("/swagger"))
+    .ExcludeFromDescription();
 
 app.MapTicketsEndpoints();
 
