@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace tickets_service.Application.Tickets;
+namespace tickets_service.Domain.Tickets.Ports;
 
 /// <summary>
 /// Puerto hacia events-service para validar estado y disponibilidad.

@@ -5,7 +5,7 @@ using tickets_service.Domain.Tickets.ValueObjects;
 namespace tickets_service.Infrastructure.Persistence.Entities;
 
 /// <summary>Representación de persistencia para el agregado Ticket.</summary>
-internal sealed class TicketRecord
+public sealed class TicketRecord
 {
     public Guid Id { get; set; }
     public Guid EventoId { get; set; }

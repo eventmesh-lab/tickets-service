@@ -1,7 +1,13 @@
+using MediatR;
 using Microsoft.EntityFrameworkCore;
-using tickets_service.Application.Tickets;
+using tickets_service.Application;
+using tickets_service.Application.Tickets.Commands.CancelarTicket;
+using tickets_service.Application.Tickets.Commands.ConfirmarTickets;
+using tickets_service.Application.Tickets.Commands.GenerarTickets;
+using tickets_service.Application.Tickets.Commands.ValidarTicket;
 using tickets_service.Application.Tickets.Contracts;
 using tickets_service.Domain.Tickets.Repositories;
+using tickets_service.Domain.Tickets.Ports;
 using tickets_service.Infrastructure.Gateways;
 using tickets_service.Infrastructure.Persistence;
 using tickets_service.Infrastructure.Repositories;
@@ -18,7 +24,9 @@ var connectionString = builder.Configuration.GetConnectionString("TicketsDb")
 builder.Services.AddDbContext<TicketsDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<IEventAvailabilityGateway, NoopEventAvailabilityGateway>();
-builder.Services.AddScoped<TicketApplicationService>();
+
+// Registrar capa de aplicación (MediatR + Validators)
+builder.Services.AddApplication();
 
 var app = builder.Build();
 
@@ -39,38 +47,61 @@ static class TicketsEndpoints
     {
         var group = app.MapGroup("/api/tickets");
 
-        group.MapPost("/generar", async (GenerarTicketsRequest request, TicketApplicationService service, CancellationToken ct) =>
+        group.MapPost("/generar", async (GenerarTicketsRequest request, ISender sender, CancellationToken ct) =>
         {
-            var normalized = request with
-            {
-                FechaActualUtc = request.FechaActualUtc == default ? DateTime.UtcNow : request.FechaActualUtc
-            };
+            // Mapeo de Request a Command
+            var command = new GenerarTicketsCommand(
+                request.EventoId,
+                request.ReservaId,
+                request.AsistenteId,
+                request.FechaActualUtc == default ? DateTime.UtcNow : request.FechaActualUtc,
+                request.Items
+            );
 
-            var result = await service.GenerarAsync(normalized, ct);
+            var result = await sender.Send(command, ct);
             return Results.Created($"/api/tickets/reserva/{request.ReservaId}", result);
         })
         .WithName("GenerarTickets")
         .Produces<GenerarTicketsResult>(StatusCodes.Status201Created);
 
-        group.MapPost("/confirmar", async (ConfirmarTicketsRequest request, TicketApplicationService service, CancellationToken ct) =>
+        group.MapPost("/confirmar", async (ConfirmarTicketsRequest request, ISender sender, CancellationToken ct) =>
         {
-            await service.ConfirmarAsync(request, ct);
+            var command = new ConfirmarTicketsCommand(
+                request.PagoId,
+                request.FechaConfirmacionUtc,
+                request.TicketIds
+            );
+
+            await sender.Send(command, ct);
             return Results.NoContent();
         })
         .WithName("ConfirmarTickets")
         .Produces(StatusCodes.Status204NoContent);
 
-        group.MapPost("/validar", async (ValidarTicketRequest request, TicketApplicationService service, CancellationToken ct) =>
+        group.MapPost("/validar", async (ValidarTicketRequest request, ISender sender, CancellationToken ct) =>
         {
-            await service.ValidarAsync(request, ct);
+            var command = new ValidarTicketCommand(
+                request.CodigoQr,
+                request.UbicacionValidacion,
+                request.UsuarioValidadorId,
+                request.FechaValidacionUtc
+            );
+
+            await sender.Send(command, ct);
             return Results.Ok();
         })
         .WithName("ValidarTicket")
         .Produces(StatusCodes.Status200OK);
 
-        group.MapPost("/cancelar", async (CancelarTicketRequest request, TicketApplicationService service, CancellationToken ct) =>
+        group.MapPost("/cancelar", async (CancelarTicketRequest request, ISender sender, CancellationToken ct) =>
         {
-            await service.CancelarAsync(request, ct);
+            var command = new CancelarTicketCommand(
+                request.TicketId,
+                request.Razon,
+                request.FechaCancelacionUtc
+            );
+
+            await sender.Send(command, ct);
             return Results.NoContent();
         })
         .WithName("CancelarTicket")

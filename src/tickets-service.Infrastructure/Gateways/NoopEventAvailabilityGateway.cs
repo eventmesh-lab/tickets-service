@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using tickets_service.Application.Tickets;
+using tickets_service.Domain.Tickets.Ports;
 
 namespace tickets_service.Infrastructure.Gateways;
 
