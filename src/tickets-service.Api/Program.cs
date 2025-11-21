@@ -23,7 +23,14 @@ var connectionString = builder.Configuration.GetConnectionString("TicketsDb")
 
 builder.Services.AddDbContext<TicketsDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
-builder.Services.AddScoped<IEventAvailabilityGateway, NoopEventAvailabilityGateway>();
+
+var eventsServiceUrl = builder.Configuration["EventsServiceUrl"] 
+    ?? throw new InvalidOperationException("EventsServiceUrl no está configurado.");
+
+builder.Services.AddHttpClient<IEventAvailabilityGateway, HttpEventAvailabilityGateway>(client =>
+{
+    client.BaseAddress = new Uri(eventsServiceUrl);
+});
 
 // Registrar capa de aplicación (MediatR + Validators)
 builder.Services.AddApplication();
