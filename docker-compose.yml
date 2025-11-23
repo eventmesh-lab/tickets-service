@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   db:
     image: postgres:15-alpine
@@ -16,6 +15,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runtime
     ports:
       - "5005:80"
     depends_on:
@@ -23,6 +23,35 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__TicketsDb: Host=db;Port=5432;Database=tickets_service;Username=tickets;Password=tickets
+      EventsServiceUrl: http://events-service:80
+
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "5005:80"
+    depends_on:
+      - db
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__TicketsDb: Host=db;Port=5432;Database=tickets_service;Username=tickets;Password=tickets
+      EventsServiceUrl: http://events-service:80
+    volumes:
+      # Montar código fuente para desarrollo con hot reload
+      - ./src:/app/src:ro
+      # Excluir directorios bin y obj para evitar conflictos
+      - /app/src/tickets-service.Api/bin
+      - /app/src/tickets-service.Api/obj
+      - /app/src/tickets-service.Application/bin
+      - /app/src/tickets-service.Application/obj
+      - /app/src/tickets-service.Domain/bin
+      - /app/src/tickets-service.Domain/obj
+      - /app/src/tickets-service.Infrastructure/bin
+      - /app/src/tickets-service.Infrastructure/obj
+    profiles:
+      - dev
 
 volumes:
   tickets_pg_data:

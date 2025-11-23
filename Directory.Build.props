@@ -1,0 +1,22 @@
+<Project>
+  <PropertyGroup>
+    <!-- Deshabilitar servidor de compilación compartida de Roslyn -->
+    <!-- Esto previene que el proceso del compilador mantenga bloqueos en los archivos DLL -->
+    <UseSharedCompilation>false</UseSharedCompilation>
+    
+    <!-- Configurar para mejor experiencia de desarrollo -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    
+    <!-- Propiedades comunes del proyecto -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- Optimizaciones de build -->
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+</Project>
+
+
