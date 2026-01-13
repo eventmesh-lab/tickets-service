@@ -6,6 +6,7 @@ using tickets_service.Application.Tickets.Commands.ConfirmarTickets;
 using tickets_service.Application.Tickets.Commands.GenerarTickets;
 using tickets_service.Application.Tickets.Commands.ValidarTicket;
 using tickets_service.Application.Tickets.Contracts;
+using tickets_service.Application.Tickets.UseCases;
 using tickets_service.Domain.Tickets.Repositories;
 using tickets_service.Domain.Tickets.Ports;
 using tickets_service.Infrastructure.Gateways;
@@ -123,6 +124,22 @@ static class TicketsEndpoints
         })
         .WithName("CancelarTicket")
         .Produces(StatusCodes.Status204NoContent);
+
+        // GET /api/tickets/check-access?eventId={id}&userId={id}
+        group.MapGet("/check-access", async (Guid eventId, Guid userId, ISender sender, CancellationToken ct) =>
+        {
+            var query = new CheckAccessQuery(eventId, userId);
+            var result = await sender.Send(query, ct);
+            return Results.Ok(new
+            {
+                hasAccess = result.HasAccess,
+                ticketId = result.TicketId,
+                ticketType = result.TicketType,
+                status = result.Status
+            });
+        })
+        .WithName("CheckAccess")
+        .Produces(StatusCodes.Status200OK);
     }
 }
 
