@@ -69,5 +69,16 @@ public sealed class TicketRepository : ITicketRepository
 
         return await query.CountAsync(cancellationToken);
     }
+
+    public async Task<Ticket?> GetTicketForAccessAsync(Guid eventoId, Guid asistenteId, CancellationToken cancellationToken = default)
+    {
+        var entity = await _context.Tickets.AsNoTracking()
+            .Where(t => t.EventoId == eventoId && t.AsistenteId == asistenteId &&
+                        (t.Estado == (int)EstadoTicket.Confirmado || t.Estado == (int)EstadoTicket.Usado))
+            .OrderByDescending(t => t.FechaEmision)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return entity?.ToDomain();
+    }
 }
 

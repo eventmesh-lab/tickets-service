@@ -26,5 +26,11 @@ public interface ITicketRepository
     /// Cuenta los tickets activos (Pendiente/Confirmado) para un evento, opcionalmente filtrando por sección.
     /// </summary>
     Task<int> GetActiveTicketCountAsync(Guid eventoId, string? seccionNombre, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Obtiene el ticket válido para acceso (Confirmado o Usado) de un usuario a un evento.
+    /// Devuelve el ticket más reciente si existe; de lo contrario, null.
+    /// </summary>
+    Task<Ticket?> GetTicketForAccessAsync(Guid eventoId, Guid asistenteId, CancellationToken cancellationToken = default);
 }
 
